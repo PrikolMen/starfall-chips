@@ -1,0 +1,77 @@
+--@name Melon Killer
+--@author PrikolMen#3372
+--@server
+
+local owner = owner()
+local ignoreOwner = true
+
+local friendList = {
+    ["76561198100459279"] = true, -- PrikolMen:-b
+    ["76561198256780625"] = true -- Angel
+}
+
+function findTarget(pos)
+    return find.closest(find.allPlayers(function(ply)
+        if ignoreOwner and (ply == owner) then
+            return false
+        end
+
+        if ply:hasGodMode() or ply:isNoclipped() then return false end
+        if not ply:isAlive() or friendList[ply:getSteamID64()] then return false end
+
+        return true
+    end), pos)
+end
+
+local dist = 15000
+local mdl = "models/props_junk/watermelon01.mdl"
+
+local toggled = false
+function Create(pos)
+    local ent = prop.create(pos, Angle(), mdl)
+    ent:setUnbreakable(true)
+
+    local phys = ent:getPhysicsObject()
+    if isValid(phys) then
+        phys:wake()
+        phys:enableMotion(true)
+        phys:addGameFlags(FVPHYSICS.DMG_DISSOLVE)
+    end
+
+    local thinkTimer = 0
+    local hookName = tostring(ent)
+    hook.add("think", hookName, function()
+        if not isValid(ent) then
+            hook.remove("think", hookName)
+        end
+
+        local time = timer.curtime()
+        if (thinkTimer < time) then
+            local pos = ent:getPos()
+            local ply = findTarget(pos)
+            if isValid(ply) and toggled then
+                if (pos:getDistance(ply:getPos()) < dist) then
+                    if isValid(phys) then
+                        phys:applyForceCenter((ply:localToWorld(ply:obbCenter()) - ent:localToWorld(ent:obbCenter())) * phys:getMass())
+                    else
+                        hook.remove("think", hookName)
+                            
+                        if isValid(ent) then
+                            ent:remove()
+                        end
+                    end
+                end
+            end
+
+            thinkTimer = time + 0.05
+        end        
+    end)
+end
+
+hook.add("KeyPress", "MelonKiller", function(ply, key)
+    if (ply == owner) and (key == 262144) then
+        toggled = !toggled
+    end
+end)
+
+Create(chip():localToWorld(Vector(0, 0, 20)))

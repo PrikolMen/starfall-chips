@@ -1,0 +1,89 @@
+--@name Angel's Spawnpoint
+--@author _aNgelOKK_ & PrikolMen:-b
+--@includedir libs
+--@shared
+
+dofile("libs/plib.txt")
+
+local owner, chip = owner(), chip()
+chip:setNoDraw(true)
+
+if SERVER then
+    chip:setCollisionGroup(12)
+    
+    local clock = prop.create(chip:getPos(), chip:getAngles() - Angle(90), "models/props_trainstation/trainstation_clock001.mdl")
+    clock:setCollisionGroup(12)
+    clock:setParent(chip)
+
+    local ok, seat = pcall(prop.createSent, chip:getPos(), chip:getAngles(), "Seat_Airboat", false)
+    if ok then
+        if isValid(seat) then
+            seat:setNoDraw(true)
+            seat:setPos(chip:localToWorld(Vector(0, 0, 25)))
+            seat:setCollisionGroup(12)
+            seat:setParent(chip)
+        else
+            chip:remove()
+        end
+    else
+        chip:remove()
+    end
+
+    hook.add("PlayerSpawn", "SpawnPoint", function(ply)
+        if (ply == owner) then
+            seat:use()
+
+            timer.simple(0, function()
+                if isValid(seat) then
+                    seat:ejectDriver()
+                end
+            end)
+        end
+    end)
+    
+    local start = chip:localToWorld(chip:obbCenter())
+    local tr = trace.trace(start, start - Vector(0, 0, 100), chip)
+    if tr.Hit then
+        local ent = tr.Entity
+        if isValid(ent) and (ent:getOwner() == owner) then
+            if clock:getPos():isInWorld() then
+                chip:setParent(ent)
+    
+                if isValid(clock) then
+                    clock:setColor(ent:getColor())
+                end
+            end
+        end
+    end
+else
+    local enableText = false
+    if not enableText then return end
+
+    local iterations = 14
+    local scale = 0.1
+    local font = render.createFont("Roboto", 128, 400, true)
+
+    local color = GetPlayerColor(owner)
+    local nick = owner:getName()
+
+    hook.add("PostDrawOpaqueRenderables", "", function()
+        local m = chip:getMatrix()
+        m:translate(Vector(0, 0, 45))
+        m:setAngles((eyePos() - m:getTranslation()):getAngle() + Angle(90, 0, 0))
+        m:rotate(Angle(0, 90, 0))
+        m:setScale(Vector(scale, -scale))
+        
+        for i = 1, iterations do
+            render.pushMatrix(m)
+                render.setColor(color / (iterations-i))
+                render.setFont(font)
+                render.drawSimpleText(0, 0, nick, 1, 1)
+            render.popMatrix()
+            m:translate(Vector(1, -1))
+        end
+    end)
+    
+    if (player() == owner) then
+        enableHud(nil, true)
+    end
+end

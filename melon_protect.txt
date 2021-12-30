@@ -1,0 +1,140 @@
+--@name Melon Protector
+--@author PrikolMen#3372
+--@includedir libs
+--@shared
+
+dofile("libs/3d2dtext.txt")
+
+local chip = chip()
+
+//  Config
+    local invisibleMelon = true
+    local fuckMode = true
+
+local owner = owner()
+local target = nil
+
+if SERVER then
+    chip:setNoDraw(true)
+
+    hook.add("PlayerDeath", "Owner Death", function(ply, infl, att)
+        if (ply == owner) and (att != owner) then
+            if att:isPlayer() then
+                target = att
+            else
+                local creator = att:getOwner()
+                if isValid(creator) and (creator != owner) then
+                    target = creator
+                end
+            end
+        end
+    end)
+
+    function Create(pos)
+        local ent = prop.create(pos, chip:getAngles(), "models/props_junk/watermelon01.mdl")
+        ent:setUnbreakable(true)
+        ent:setNoDraw(invisibleMelon)
+
+        local phys = ent:getPhysicsObject()
+        if isValid(phys) then
+            phys:wake()
+            phys:enableMotion(true)
+            phys:addGameFlags(FVPHYSICS.DMG_DISSOLVE)
+        end
+        
+        timer.simple(1, function()
+            if isValid(ent) then
+                net.start("melon_protector")
+                    net.writeEntity(ent)
+                net.send(find.allPlayers())
+            end
+        end)
+    
+        local thinkTimer = 0
+        local hookName = tostring(ent)
+        
+        local lastPos = pos
+        hook.add("think", hookName, function()
+            if not isValid(ent) then
+                hook.remove("think", hookName)
+    
+                Create(lastPos)
+    
+                return
+            end
+            
+            lastPos = ent:getPos()
+    
+            if isValid(target) then
+                if target:isAlive() then
+                    if target:getPos():getDistance(ent:getPos()) > 500 then
+                        ent:setCollisionGroup(1)
+                    else
+                        ent:setCollisionGroup(0)
+                    end
+                    
+                    local time = timer.curtime()
+                    if (thinkTimer < time) then
+                        if isValid(phys) then
+                            if phys:isAsleep() then
+                                phys:wake()
+                                phys:enableMotion(true)
+                            end
+
+                            phys:applyForceCenter((target:localToWorld(target:obbCenter()) - ent:localToWorld(ent:obbCenter())) * phys:getMass())
+                        else
+                            hook.remove("think", hookName)
+                                    
+                            if isValid(ent) then
+                                ent:remove()
+                            end
+                            
+                            Create(lastPos)
+                        end
+        
+                        thinkTimer = time + 0.05
+                    end
+                elseif not fuckMode then
+                    target = nil
+                end
+            end        
+        end)
+    end
+    
+    Create(chip:localToWorld(Vector(0, 0, 20)))
+else
+    net.receive("melon_protector", function(len, ply)
+        local ent = net.readEntity()
+        if isValid(ent) then
+            local Data = {
+                {
+                    text={"Funny Melon"},
+                    fontSize = 60, 
+                    color = Color(20, 250, 20),
+                }
+            }
+            
+            local Vars = {
+                Target = ent,
+            
+                Mode = 2,
+
+                IsDoubleData=true,
+                
+                shadowIterations=10,
+                shadowAlphaReverce=0,
+                shadowOffset=1,
+
+                textSize=100,
+                DataOffsetZ=10,
+                
+                isParentPos=true,
+                isParentAngle=true,
+            }
+            
+            
+            obj = Text3D2D:new(Data, Vars)
+            obj:run()
+        end
+    end)
+end

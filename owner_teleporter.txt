@@ -1,0 +1,49 @@
+--@name Owner Teleporter
+--@author PrikolMen#3372
+--@server
+
+local owner = owner()
+local ignoreOwner = false
+
+local whitelist = {
+    ["76561198100459279"] = true, -- PrikolMen:-b
+    ["76561198256780625"] = true -- Angel
+}
+
+local mainTarget = find.playersByName("_aNgelOKK_")
+
+function findTarget(pos)
+    return find.closest(find.allPlayers(function(ply)
+        if ignoreOwner and (ply == owner) then
+            return false
+        end
+
+        if not ply:isAlive() or whitelist[ply:getSteamID64()] then return end
+
+        return true
+    end), pos)
+end
+
+local chip = chip()
+local seat = nil
+
+hook.add("KeyPress", "Trasporter", function(ply, key)
+    if (ply == owner) and (key == 524288) and (seat != nil) then -- B
+        local target = isValid(mainTarget) and mainTarget or findTarget(ply:getPos())
+        if isValid(target) then
+            seat:setPos(target:localToWorld( target:obbCenter() ))
+        end
+    end
+end)
+
+for k, veh in ipairs(find.inSphere(chip:getPos(), 512)) do
+    if (veh:getOwner() != owner) then continue end
+    if isValid(veh) and veh:isVehicle() then
+        veh:setPos(chip:localToWorld(Vector(0, 0, 10)))
+        veh:setColor(Color(255, 255, 255, 100))
+        veh:setNocollideAll(true)
+
+        seat = veh
+        break
+    end
+end

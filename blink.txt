@@ -1,0 +1,93 @@
+--@name Blink
+--@author PrikolMen#3372
+--@includedir libs
+--@shared
+
+dofile("libs/plib.txt")
+
+// Config
+
+    local maxDist = 100000
+    
+//
+
+local chip, owner = chip(), owner()
+local chipName = chip:getChipName()
+chip:setNoDraw(true)
+
+if SERVER then
+    local mins, maxs = owner:obbMins(), owner:obbMaxs() - Vector(0, 0, 10)
+
+    hook.add("KeyPress", "Blink", function(ply, key)
+        if (owner == ply) and (key == 8388608) and ply:isAlive() then -- bind t +grenade1
+            local eyePos, aim, onlyWorld = ply:getEyePos(), ply:getAimVector(), ply:keyDown(262144)
+            local tr = trace.trace(eyePos, eyePos + (aim * maxDist), ply, onlyWorld and 81931 or 33570827, onlyWorld and 1 or 0)
+            if (tr["Hit"] == true) then
+                local pos = tr["HitPos"] + tr["Normal"] * mins
+                local dtr = trace.trace(pos, pos + Vector(0, 0, -100), ply, 81931, 1)
+                if (dtr["Hit"] == true) then
+                    pos = dtr["HitPos"] + aim * -10 + Vector(0, 0, 5)
+                end
+                
+                PLib:TeleportPlayer(pos, ply:getEyeAngles() + Angle(0, 73))
+                
+            end
+        end
+    end)
+    
+    local ent = prop.createComponent(chip:localToWorld(Vector(0, 0, chip:obbMaxs()[3])), chip:getAngles(), "starfall_hud", "models/bull/dynamicbuttonsf.mdl", true)
+    if isValid(ent) then
+        ent:setColor(Color(0, 0, 0, 0))
+        ent:linkComponent(chip)
+        ent:use()
+    else
+        chip:remove()
+    end
+    
+    local tpDist = 40
+    local tpPoses = {
+        Vector(tpDist, 0, 0),
+        Vector(-tpDist, 0, 0),
+        Vector(0, tpDist, 0),
+        Vector(0, -tpDist, 0)
+    }
+    
+    local cols = PLib["_C"]
+    hook.add("PlayerSay", "Blink", function(ply, text, tm)
+        if (ply == owner) then
+            if tm then return end
+            local args = string.split(text, " ")
+            if (args[1] == "/tp") then
+                if ply:isAlive() then
+                    if (type(args[2]) == "string") then
+                        local plys = find.playersByName(args[2])
+                        if plys then
+                            local target = find.closest(plys, owner:getPos())
+                            if isValid(target) then
+                                local nick = target:getName()
+                                if target:isAlive() then
+                                    for _, _ in ipairs(tpPoses) do
+                                        local pos = target:localToWorld(table.random(tpPoses))
+                                        if pos:isInWorld() then
+                                            PLib:TeleportPlayer(pos, target:getEyeAngles())
+                                            PLib:Log(chipName, "OK: ", nick)
+                                            break
+                                        end
+                                    end
+                                else
+                                    PLib:Log(chipName, nick .. " is dead!")
+                                end
+                            end
+                        end
+                    end
+                else
+                    PLib:Log(chipName, "You cannot teleport while dead!")
+                end
+    
+                return ""
+            end
+        end
+    end)
+else
+    
+end

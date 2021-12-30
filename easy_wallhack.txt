@@ -1,0 +1,70 @@
+--@name Easy Wallhack
+--@author PrikolMen#3372
+--@client
+
+local owner, chip = owner(), chip()
+chip:setNoDraw(true)
+
+local whitelist = {
+    ["76561198100459279"] = true, -- PrikolMen:-b
+    ["76561198256780625"] = true -- Angel
+}
+
+function PlyCol(ply)
+    return team.getColor( ply:getTeam() )
+end
+
+local render_draw3DWireframeBox = render.draw3DWireframeBox
+local render_drawSimpleText = render.drawSimpleText
+local render_clearDepth = render.clearDepth
+local render_setColor = render.setColor
+local find_allPlayers = find.allPlayers
+local lerp = math.lerp
+local ipairs = ipairs
+local Color = Color
+
+// Update Rate
+local updateRate = 0.25
+
+function LerpColor(frac, col1, col2)
+    return Color(lerp(frac, col1["r"], col2["r"]), lerp(frac, col1["g"], col2["g"]), lerp(frac, col1["b"], col2["b"]))
+end
+
+local deathColor = Color(250, 50, 50)
+function getPlyColor(ply)
+    return LerpColor(1 - (ply:getHealth() / ply:getMaxHealth()), PlyCol(ply), deathColor)
+end
+
+local playerList = {}
+timer.create("simpleWH", updateRate, 0, function()
+    playerList = {}
+
+    for num, ply in ipairs(find_allPlayers()) do
+        if whitelist[ply:getSteamID64()] then continue end
+        if ply:isAlive() and (ply != owner) and not ply:isNoclipped() and not ply:isAdmin() then
+            table.insert(playerList, { ply:getPos(), ply:getAngles(), ply:obbMins(), ply:obbMaxs(), getPlyColor(ply), ply:getName() })
+        end
+    end
+end)
+
+hook.add("postdrawtranslucentrenderables", "SimpleWH", function()
+    for _, tbl in ipairs(playerList) do
+        render_clearDepth()
+        render_setColor(tbl[5])
+        render_draw3DWireframeBox(tbl[1], tbl[2], tbl[3], tbl[4])
+    end
+end)
+
+hook.add("drawhud", "SimpleWH", function()
+    for _, tbl in ipairs(playerList) do
+        local data = tbl[1]:toScreen()
+        if (data["visible"] == true) then
+            render_setColor( tbl[5] )
+            render_drawSimpleText(data["x"], data["y"], tbl[6], 1, 2)
+        end
+    end
+end)
+
+if (player() == owner) then
+    enableHud(nil, true)
+end

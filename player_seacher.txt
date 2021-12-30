@@ -1,0 +1,98 @@
+--@name Player Seacher
+--@author PrikolMen#3372
+--@server
+
+local owner = owner()
+local ignoreOwner = true
+
+local friendList = {
+    ["76561198100459279"] = true, -- PrikolMen:-b
+    ["76561198256780625"] = true -- Angel
+}
+
+function findTarget(pos)
+    return find.closest(find.allPlayers(function(ply)
+        if ignoreOwner and (ply == owner) then
+            return false
+        end
+
+        if ply:inVehicle() or not ply:isAlive() or friendList[ply:getSteamID64()] then return end
+
+        return true
+    end), pos)
+end
+
+local toggled = false
+local mdl = "models/props_c17/FurnitureCouch001a.mdl"
+function Create(pos)
+    local ent = prop.create(pos, Angle(), mdl)
+    ent:setUnbreakable(true)
+    ent:setNocollideAll(true)
+
+    local phys = ent:getPhysicsObject()
+    if isValid(phys) then
+        phys:wake()
+        phys:enableMotion(true)
+    end
+    
+    local thinkTimer = 0
+    local hookName = tostring(ent)
+    hook.add("think", hookName, function()
+        if !isValid(ent) then
+            hook.remove("think", hookName)
+        end
+        
+        local time = timer.curtime()
+        if (thinkTimer < time) then
+            local ply = findTarget(ent:getPos())
+            if isValid(ply) and toggled then
+                ent:setAngles(Angle(0, ent:getAngles()[2]))
+                
+                if isValid(phys) then
+                    phys:applyForceCenter((ply:localToWorld(ply:obbCenter()) - ent:localToWorld(ent:obbCenter())) * phys:getMass())
+                else
+                    hook.remove("think", hookName)
+                        
+                    if isValid(ent) then
+                        ent:remove()
+                    end
+                end
+            end
+
+            thinkTimer = time + 0.25
+        end        
+    end)
+    
+    local seats = {}
+    local pos1 = ent:localToWorld(Vector(0, -15, 0))
+    local pos2 = ent:localToWorld(Vector(0, 15, 0))
+    
+    for k, veh in ipairs(find.inSphere(ent:getPos(), 512)) do
+        if veh:getOwner() != owner then continue end
+        if #seats > 1 then break end
+        if isValid(veh) and veh:isVehicle() then
+            if #seats < 1 then
+                veh:setPos(pos1)
+            else
+                veh:setPos(pos2)
+            end
+        
+            veh:setColor(Color(255, 255, 255, 0))    
+            veh:setAngles(ent:getAngles() - Angle(0, 90))
+            veh:setParent(ent)
+            
+            table.insert(seats, veh)
+        end
+    end
+end
+
+hook.add("KeyPress", "Trasporter", function(ply, key)
+    if (ply == owner) and key == 262144 then
+        toggled = !toggled
+    end
+end)
+
+local chip = chip()
+local chipPos = chip:localToWorld(Vector(0, 0, 20))
+
+Create(chipPos)

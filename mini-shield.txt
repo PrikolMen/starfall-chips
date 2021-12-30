@@ -1,0 +1,31 @@
+--@name Platform
+--@author PrikolMen#3372
+--@server
+
+local chip = chip()
+local chipName = chip:getChipName()
+chip:setNoDraw(true)
+
+local owner = owner()
+
+local ang = owner:getAngles()
+local ent = prop.create(owner:localToWorld( ang:getUp() * -80), Angle(0, ang[2], 180), "models/hunter/plates/plate2x2.mdl")
+
+ent:setColor(Color(20, 20, 20, 200))
+
+local phys = ent:getPhysicsObject()
+if isValid(phys) then
+    phys:enableMotion(false)
+end
+
+local lastPos = Vector()
+timer.create(chipName, 0.025, 0, function()
+    if owner:isAlive() then
+        lastPos = owner:getPos() + Vector(0, 0 , -2)
+    end
+
+    if isValid(ent) then
+        ent:setPos(lastPos)
+        ent:setAngles(Angle(0, owner:getEyeAngles()[2], 0))
+    end
+end)

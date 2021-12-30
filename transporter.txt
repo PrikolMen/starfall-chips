@@ -1,0 +1,73 @@
+--@name Transporter
+--@author PrikolMen#3372
+--@includedir libs
+--@server
+
+dofile("libs/plib.txt")
+
+local owner = owner()
+local ignoreOwner = false
+
+local chip = chip()
+local seat = PLib:CreateSeat()
+if not isValid(seat) then
+    return chip:remove()
+end
+
+seat:setPos(chip:localToWorld(Vector(0, 0, 10)))
+seat:setNocollideAll(true)
+
+-- W - 8
+-- D - 1024
+-- A - 512
+-- S - 16
+
+-- Space - 2
+-- Ctrl - 4
+
+local rotateAmount = 15
+local dist = 20
+
+hook.add("KeyPress", "Trasporter", function(ply, key)
+    if (ply == owner) and (seat != nil) and ply:inVehicle() and (ply:getVehicle() == seat) then -- B
+
+        local dist = dist
+
+        -- Shift
+        if ply:keyDown(131072) then
+           dist = dist * 2 
+        end
+
+        local ang = ply:getAngles()
+
+        -- W
+        if (key == 8) then
+            seat:setPos( seat:localToWorld( ang:getForward() * dist ) )
+        end
+
+        -- S
+        if (key == 16) then
+            seat:setPos( seat:localToWorld( ang:getForward() * -dist ) )
+        end
+
+        -- D
+        if (key == 1024) then
+            seat:setAngles( ang + Angle(0, rotateAmount) )
+        end
+        
+        -- A
+        if (key == 512) then
+            seat:setAngles( ang - Angle(0, rotateAmount) )
+        end
+        
+        -- Space
+        if (key == 2) then
+        
+        end
+        
+        -- Ctrl
+        if (key == 4) then
+        
+        end
+    end
+end)

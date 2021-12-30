@@ -1,0 +1,8 @@
+--@name Chip Killer
+--@author PrikolMen#3372
+--@server
+
+local phys = chip():getPhysicsObject()
+if isValid(phys) then
+    phys:addGameFlags(FVPHYSICS.DMG_DISSOLVE)
+end

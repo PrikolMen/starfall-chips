@@ -1,0 +1,10 @@
+--@name Vehicle Killer
+--@author PrikolMen#3372
+--@server
+
+local owner = owner()
+hook.add("PlayerEnteredVehicle", "VehicleKiller", function(ply, veh)
+    if (veh:getOwner() == owner) then
+        veh:killDriver()
+    end
+end)

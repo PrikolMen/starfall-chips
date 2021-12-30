@@ -1,0 +1,28 @@
+--@name Easy Invis
+--@author PrikolMen#3372
+--@shared
+
+local owner = owner()
+
+local state = false
+local function toggle(bool)
+    owner:setColor(bool and Color(255, 255, 255, 0) or Color(255, 255, 255, 255)); state = bool
+end
+
+toggle(true)
+
+local chip = chip()
+chip:setNoDraw(true)
+
+local chipName = chip:getChipName()
+hook.add("EntityRemoved", chipName, function(ent)
+    if (chip == ent) then
+        toggle(false)
+    end
+end)
+
+hook.add("PlayerSpawn", chipName, function(ply)
+    if (ply == owner) then
+        toggle(state)
+    end
+end)

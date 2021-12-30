@@ -1,0 +1,7 @@
+--@name
+--@author
+--@shared
+
+hook.add("render", "render", function()
+    render.draw3DWireframeBox(Vector(0,0,1),Angle(0,0,0),Vector(512,512,512),Vector(0,0,0))
+end)

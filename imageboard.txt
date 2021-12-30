@@ -1,0 +1,33 @@
+--@name Image Board
+--@author PrikolMen#3372
+--@shared
+
+local chip = chip()
+
+// Config
+
+    local screenMdl = "models/bull/dynamicbuttonsf.mdl"
+    local url = "https://i.imgur.com/CXlx2OS.png"
+    
+//
+
+if SERVER then
+    chip:setNoDraw(true)
+
+    local screen = prop.createComponent(chip:localToWorld(Vector(0, 0, chip:obbMaxs()[3])), chip:getAngles(), "starfall_screen", screenMdl, true)
+    if isValid(screen) then
+        screen:setColor(Color(0, 0, 0, 0))
+        screen:linkComponent(chip)
+        screen:use()
+    else
+        chip:remove()
+    end
+else
+    
+    mat:setTextureURL("$basetexture", url, function(mat, url, width, height)
+    
+    end, function(mat, url)
+    
+    end)
+
+end   

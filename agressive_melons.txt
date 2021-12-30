@@ -1,0 +1,118 @@
+--@name Agressive Melons
+--@author PrikolMen#3372
+--@server
+
+local owner = owner()
+local ignoreOwner = true
+
+local friendList = {
+    ["76561198100459279"] = true, -- PrikolMen:-b
+    ["76561198256780625"] = true -- Angel
+}
+
+function findTarget(pos)
+    return find.closest(find.allPlayers(function(ply)
+        if ignoreOwner and (ply == owner) then
+            return false
+        end
+        
+        if ply:hasGodMode() or ply:isNoclipped() then return false end
+        if not ply:isAlive() or friendList[ply:getSteamID64()] then return false end
+
+        return true
+    end), pos)
+end
+
+local melon = nil
+local hookName = "melons"
+local lastPos = Vector()
+function melonDestroyed()
+    hook.remove("think", hookName)
+
+    if isValid(melon) then
+        melon:remove()
+    end
+
+    CreateMelon(lastPos)
+end
+
+local melonModel = "models/props_junk/watermelon01.mdl"
+function CreateMelon(pos)
+    lastPos = pos
+    melon = prop.create(pos, Angle(), melonModel)
+    melon:setUnbreakable(true)
+
+    timer.simple(1, function()
+        if isValid(melon) then
+            local phys = melon:getPhysicsObject()
+            if isValid(phys) then
+                phys:setMass(1000)
+        
+                phys:wake()
+                phys:enableMotion(true)
+                
+                phys:addGameFlags(FVPHYSICS.DMG_DISSOLVE)
+            end
+            
+            local target = nil
+            
+            local thinkTimer = 0
+            hookName = tostring(melon)
+            hook.add("think", hookName, function()
+                if !isValid(melon) then
+                    melonDestroyed()
+                    return
+                end
+                
+                local pos = melon:getPos()
+                
+                if lastpos then
+                    if (pos:getDistance(lastpos) > 100) then
+                        melon:setCollisionGroup(0)
+                    else
+                        melon:setCollisionGroup(12)
+                        target = findTarget(pos)
+                    end
+                end
+                
+                lastPos = pos
+        
+                local time = timer.curtime()
+                if (thinkTimer < time) then
+                    if not isValid(target) or not target:isAlive() then
+                        target = findTarget(pos)
+                    end
+                        
+                    if isValid(target) then
+                        local dist = pos:getDistance(target:getPos())
+                        if (dist < 50000) then
+                            if isValid(phys) then
+                                phys:applyForceCenter((target:localToWorld(target:obbCenter()) - melon:localToWorld(melon:obbCenter())) * phys:getMass())
+                            else
+                                melonDestroyed()
+                            end
+                        end
+                    end
+        
+                    thinkTimer = time + 0.25
+                end
+            end)
+        end
+    end)
+end
+
+local chip = chip()
+chip:setNoDraw(true)
+CreateMelon(chip:localToWorld(Vector(0, 0, 20)))
+
+hook.add("OnPhysgunPickup", "AgressiveMelons", function(ply, ent)
+    if (ent == melon) then
+        if isValid(ent) then
+            ent:remove()
+        end
+        
+        if isValid(chip) then
+            chip:remove()
+        end
+    end
+end)
