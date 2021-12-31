@@ -1,0 +1,17 @@
+--@name Fuck Physics Gun
+--@author PrikolMen#3372
+--@server
+
+local owner = owner()
+
+hook.add("OnPlayerPhysicsPickup", "", function(ply, ent)
+    if ply:isAdmin() and ent == owner then
+        local prop = prop.create(ent:localToWorld(ent:obbCenter()), ply:getAngles(), "models/hunter/blocks/cube2x2x2.mdl", true)
+    
+        timer.simple(0, function()
+            if isValid(prop) then
+                prop:remove()
+            end
+        end)
+    end
+end)
