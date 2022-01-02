@@ -13,9 +13,9 @@ dofile("libs/plib.txt")
 
 local chip, owner = chip(), owner()
 local chipName = chip:getChipName()
-chip:setNoDraw(true)
 
 if SERVER then
+    chip:setNoDraw(true)
     local mins, maxs = owner:obbMins(), owner:obbMaxs() - Vector(0, 0, 10)
 
     hook.add("KeyPress", "Blink", function(ply, key)
