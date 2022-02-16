@@ -5,11 +5,6 @@
 local owner, chip = owner(), chip()
 chip:setNoDraw(true)
 
-local whitelist = {
-    ["76561198100459279"] = true, -- PrikolMen:-b
-    ["76561198256780625"] = true -- Angel
-}
-
 function PlyCol(ply)
     return team.getColor( ply:getTeam() )
 end
@@ -24,7 +19,7 @@ local ipairs = ipairs
 local Color = Color
 
 // Update Rate
-local updateRate = 0.25
+local updateRate = 0.05
 
 function LerpColor(frac, col1, col2)
     return Color(lerp(frac, col1["r"], col2["r"]), lerp(frac, col1["g"], col2["g"]), lerp(frac, col1["b"], col2["b"]))
@@ -40,8 +35,7 @@ timer.create("simpleWH", updateRate, 0, function()
     playerList = {}
 
     for num, ply in ipairs(find_allPlayers()) do
-        if whitelist[ply:getSteamID64()] then continue end
-        if ply:isAlive() and (ply != owner) and not ply:isNoclipped() and not ply:isAdmin() then
+        if ply:isAlive() and (ply != owner) and (ply != player()) and not ply:isNoclipped() then
             table.insert(playerList, { ply:getPos(), ply:getAngles(), ply:obbMins(), ply:obbMaxs(), getPlyColor(ply), ply:getName() })
         end
     end

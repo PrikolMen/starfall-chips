@@ -1,0 +1,101 @@
+--@name Chip Destroyer
+--@author PrikolMen#3372
+--@server
+
+local owner = owner()
+
+local chip = chip()
+local chipClass = chip:getClass()
+
+local searchingClasses = {
+    [chipClass] = true,
+}
+
+local melonModel = "models/props_junk/watermelon01.mdl"
+function findTarget(pos) 
+    return find.closest(find.all(function(ent)
+        if (ent:getOwner() == owner) then
+            return false
+        end
+        
+        local class = ent:getClass()
+        if (searchingClasses[class] == true) or (class == "prop_physics" and ent:getModel() == melonModel) then
+            return true
+        end
+
+        return false
+    end), pos)
+end
+
+local melon = nil
+local hookName = "melons"
+local lastPos = Vector()
+function melonDestroyed()
+    timer.remove("think", hookName)
+
+    if isValid(melon) then
+        melon:remove()
+    end
+
+    CreateMelon(lastPos)
+end
+
+function CreateMelon(pos)
+    lastPos = pos
+    melon = prop.create(pos, Angle(), melonModel)
+    melon:setUnbreakable(true)
+
+    timer.simple(0, function()
+        if isValid(melon) then
+            local phys = melon:getPhysicsObject()
+            if isValid(phys) then
+                phys:setMass(1000)
+        
+                phys:wake()
+                phys:enableMotion(true)
+                
+                phys:addGameFlags(FVPHYSICS.DMG_DISSOLVE)
+            end
+            
+            local target = nil
+            timer.create(hookName, 0.25, 0, function()
+                if not isValid(melon) then
+                    melonDestroyed()
+                    return
+                end
+                
+                local pos = melon:getPos()
+                lastPos = pos
+        
+                if not isValid(target) then
+                    target = findTarget(pos)
+                end
+                        
+                if isValid(target) then
+                    if isValid(phys) then
+                        phys:applyForceCenter((target:localToWorld(target:obbCenter()) - melon:localToWorld(melon:obbCenter())) * phys:getMass())
+                    else
+                        melonDestroyed()
+                    end
+                end
+            end)
+        end
+    end)
+end
+
+chip:setNoDraw(true)
+CreateMelon(chip:localToWorld(Vector(0, 0, 20)))
+
+--[[
+hook.add("OnPhysgunPickup", "AgressiveMelons", function(ply, ent)
+    if (ent == melon) then
+        if isValid(ent) then
+            ent:remove()
+        end
+        
+        if isValid(chip) then
+            chip:remove()
+        end
+    end
+end)
+]]

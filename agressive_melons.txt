@@ -2,7 +2,7 @@
 --@author PrikolMen#3372
 --@server
 
-local owner = owner()
+local owner, chip = owner(), chip()
 local ignoreOwner = true
 
 local friendList = {
@@ -10,14 +10,13 @@ local friendList = {
     ["76561198256780625"] = true -- Angel
 }
 
-function findTarget(pos)
-    return find.closest(find.allPlayers(function(ply)
-        if ignoreOwner and (ply == owner) then
+local chipClass = chip:getClass()
+
+function findTarget(pos) 
+    return find.closest(find.byClass(chipClass, function(ent)
+        if ignoreOwner and (ent:getOwner() == owner) then
             return false
         end
-        
-        if ply:hasGodMode() or ply:isNoclipped() then return false end
-        if not ply:isAlive() or friendList[ply:getSteamID64()] then return false end
 
         return true
     end), pos)
@@ -41,8 +40,9 @@ function CreateMelon(pos)
     lastPos = pos
     melon = prop.create(pos, Angle(), melonModel)
     melon:setUnbreakable(true)
+    //melon:setCollisionGroup(12)
 
-    timer.simple(1, function()
+    timer.simple(0, function()
         if isValid(melon) then
             local phys = melon:getPhysicsObject()
             if isValid(phys) then
@@ -59,14 +59,14 @@ function CreateMelon(pos)
             local thinkTimer = 0
             hookName = tostring(melon)
             hook.add("think", hookName, function()
-                if !isValid(melon) then
+                if not isValid(melon) then
                     melonDestroyed()
                     return
                 end
                 
                 local pos = melon:getPos()
                 
-                if lastpos then
+                if (lastpos != nil) then
                     if (pos:getDistance(lastpos) > 100) then
                         melon:setCollisionGroup(0)
                     else
@@ -79,7 +79,7 @@ function CreateMelon(pos)
         
                 local time = timer.curtime()
                 if (thinkTimer < time) then
-                    if not isValid(target) or not target:isAlive() then
+                    if not isValid(target) then
                         target = findTarget(pos)
                     end
                         
@@ -94,17 +94,17 @@ function CreateMelon(pos)
                         end
                     end
         
-                    thinkTimer = time + 0.25
+                    thinkTimer = time + 0.0
                 end
             end)
         end
     end)
 end
 
-local chip = chip()
 chip:setNoDraw(true)
 CreateMelon(chip:localToWorld(Vector(0, 0, 20)))
 
+--[[
 hook.add("OnPhysgunPickup", "AgressiveMelons", function(ply, ent)
     if (ent == melon) then
         if isValid(ent) then
@@ -116,3 +116,4 @@ hook.add("OnPhysgunPickup", "AgressiveMelons", function(ply, ent)
         end
     end
 end)
+]]

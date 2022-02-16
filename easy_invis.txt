@@ -23,6 +23,6 @@ end)
 
 hook.add("PlayerSpawn", chipName, function(ply)
     if (ply == owner) then
-        toggle(state)
+        toggle(false)
     end
 end)

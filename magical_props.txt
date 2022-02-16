@@ -23,7 +23,7 @@ local button = 8192 -- Space 2, R - 8192
 
 local owner = owner()
 
-local onlyOwner = false
+local onlyOwner = true
 local disableForOwner = false
 
 local invisibleProps = false
@@ -53,7 +53,7 @@ hook.add("KeyPress", "MagicBottles", function(ply, key)
                 phys:enableMotion(true)
         
                 phys:addGameFlags(FVPHYSICS.DMG_DISSOLVE)
-                phys:applyForceCenter(ply:getEyeAngles():getForward() * phys:getMass() * 10000)
+                phys:applyForceCenter(ply:getEyeAngles():getForward() * phys:getMass() * 100000)
             end
 
             ent:addCollisionListener(function(data, self)
