@@ -2,14 +2,15 @@
 --@author PrikolMen#3372
 --@server
 
-local heal = "item_healthkit"
-local armor = "item_battery"
+local heal = "entity_melon"
+local armor = "hl1_item_battery"
 
 local function Create(ply, class)
     local ok, ent = pcall(prop.createSent, ply:getPos(), ply:getAngles(), class)
     if ok then
         if isValid(ent) then
             ent:setNoDraw(true)
+            ent:use()
 
             timer.simple(0, function()
                 if isValid(ent) then
@@ -23,7 +24,7 @@ end
 local chip, ply = chip(), owner()
 chip:setNoDraw(true)
 
-timer.create(chip:getChipName(), (prop.spawnRate() / 1000), 0, function()
+hook.add("Tick", "", function()
     if ply:isAlive() and ply:getPos():isInWorld() then
         if (ply:getHealth() < ply:getMaxHealth()) then
             Create(ply, heal)
@@ -34,3 +35,18 @@ timer.create(chip:getChipName(), (prop.spawnRate() / 1000), 0, function()
         end
     end
 end)
+
+--[[
+timer.create(chip:getChipName(), 0.01, 0, function()
+    if ply:isAlive() and ply:getPos():isInWorld() then
+        if (ply:getHealth() < ply:getMaxHealth()) then
+            Create(ply, heal)
+        end
+        
+        if (ply:getArmor() < ply:getMaxArmor()) then
+            Create(ply, armor)
+        end
+        
+    end
+end)
+]]

@@ -1,0 +1,78 @@
+--@name SFManager ~ 1.3
+--@author PrikolMen#3372
+--@includedir ./
+--@shared
+
+local CL = 0
+local SV = 1
+local SH = 2
+
+local chips = {
+    {SH, "fly", false},
+    {SH, "tts", false},
+    {SV, "bruhbot", false},
+    {SV, "healing++", true},
+    {SH, "wallhack++", true},
+    {SV, "blink", true},
+    {SV, "comine_ball_reflector", false},
+    {SV, "respawn_on_death_point", true}
+}
+
+local chipName
+do
+    local chip = chip()
+    if isValid( chip ) then
+        chipName = chip:getChipName()
+    end
+end
+
+local log
+
+do
+    local print = print
+    function log( text )
+        print( "[SF] [ " .. chipName .. " ] ", text )
+    end
+end
+
+if (CLIENT) and (player() == owner()) then
+    enableHud( nil, true )
+
+    local clc = Color(255, 193, 7)
+    local svc = Color(40, 192, 252)
+    local txc = Color(250, 238, 255)
+
+    local printHud = printHud
+    function log( text )
+        printHud(CLIENT and clc or svc, "[ " .. chipName .." ] ", txc, text )
+    end
+end
+
+do
+
+    local SERVER = SERVER
+    local CLIENT = CLIENT
+    
+    local ipairs = ipairs
+    local dofile = dofile
+    local pcall = pcall
+
+    for num, data in ipairs( chips ) do
+        if (data[3] != false) then
+            if (data[1] == CL) then
+                if (CLIENT) then
+                    log( data[2] .. ": " .. (pcall( dofile, data[2] .. ".txt" ) and "OK" or "FAIL") )
+                end
+            elseif (data[1] == SV) then
+                if (SERVER) then
+                    log( data[2] .. ": " .. (pcall( dofile, data[2] .. ".txt" ) and "OK" or "FAIL") )
+                end
+            elseif (data[1] == SH) then
+                log( data[2] .. ": " .. (pcall( dofile, data[2] .. ".txt" ) and "OK" or "FAIL") )
+            end
+        else
+            log( data[2] .. ": " .. "OFF" )
+        end
+    end
+
+end

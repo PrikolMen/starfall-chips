@@ -1,0 +1,67 @@
+--@name Respawn On Death Point
+--@author PrikolMen#3372
+--@server
+
+local chip = chip()
+if isValid( chip ) then
+    if (SERVER) then
+        // pcall(chip.setNoDraw, chip, true)
+        chip:setNocollideAll( true )
+    end
+end
+
+local owner = owner()
+
+local weps = nil
+local deathPos = nil
+
+hook.add("PlayerDeath", "", function( ply )
+    if (ply != owner) then return end
+    deathPos = ply:getPos()
+    
+    weps = {}
+    local awep = ply:getActiveWeapon()
+    for num, wep in ipairs( ply:getWeapons() ) do
+        if isValid( wep ) then
+            table.insert( weps, { wep:getClass(), isValid( awep ) and (wep == awep) } )
+        end
+    end
+
+end)
+
+local angle_zero = Angle()
+
+local function spawnWep( ply, class )
+    pcall( prop.createSent, ply:localToWorld( ply:obbCenter() ), angle_zero, class )
+end
+
+local function giveWep( ply, class, active )
+    if isValid( ply:getWeapon( class ) ) then return end
+    if (active) then
+        timer.simple(0, function()
+            if isValid( ply ) then
+                spawnWep( ply, class )
+            end
+        end)
+    else
+        spawnWep( ply, class )
+    end
+end
+
+hook.add("PlayerSpawn", "", function( ply )
+    if (ply != owner) then return end
+    if (deathPos) then
+        ply:setPos( deathPos )
+        deathPos = nil
+    end
+    
+    timer.simple(0, function()
+        if isValid( ply ) and ply:isAlive() then
+            if (weps) then
+                for num, data in ipairs( weps ) do
+                    giveWep( ply, data[1], data[2] )
+                end
+            end
+        end
+    end)
+end)

@@ -6,9 +6,9 @@
 dofile("libs/plib.txt")
 
 local owner, chip = owner(), chip()
-chip:setNoDraw(true)
 
 if SERVER then
+    chip:setNoDraw(true)
     chip:setCollisionGroup(12)
     
     local clock = prop.create(chip:getPos(), chip:getAngles() - Angle(90), "models/props_trainstation/trainstation_clock001.mdl")

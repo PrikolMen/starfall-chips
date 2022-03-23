@@ -1,7 +1,7 @@
 --@name Blink
 --@author PrikolMen#3372
 --@includedir libs
---@shared
+--@server
 
 dofile("libs/plib.txt")
 
@@ -11,7 +11,8 @@ dofile("libs/plib.txt")
     
 //
 
-local chip, owner = chip(), owner()
+local chip = chip()
+local owner = owner()
 local chipName = chip:getChipName()
 
 if SERVER then
@@ -88,6 +89,4 @@ if SERVER then
             end
         end
     end)
-else
-    
 end

@@ -1,0 +1,91 @@
+--@name Blink:setPos
+--@author PrikolMen#3372
+--@includedir libs
+--@server
+
+dofile("libs/plib.txt")
+
+// Config
+
+local maxDist = 100000
+
+//
+
+local owner = owner()
+
+local compiledName
+do
+    local chip = chip()
+    if isValid( chip ) then
+        if (SERVER) then
+            // pcall(chip.setNoDraw, chip, true)
+            chip:setNocollideAll( true )
+        end
+
+        if isValid( owner ) then
+            compiledName = crc( chip:getChipName() .. " by " .. chip:getChipAuthor() .. ", Owner: " .. owner:getName() )
+        end
+    end
+end
+
+
+hook.add("KeyPress", compiledName, function( ply, key )
+    if (ply:entIndex() == owner:entIndex()) and (key == 8388608) and ply:isAlive() then -- bind t +grenade1
+        local mins, maxs = ply:obbMins() * 1.2, ply:obbMaxs() * 1.2 - Vector(0, 0, 10)
+        local eyePos, aim, onlyWorld = ply:getEyePos(), ply:getAimVector(), ply:keyDown(262144)
+        local tr = trace.trace(eyePos, eyePos + (aim * maxDist), ply, onlyWorld and 81931 or 33570827, onlyWorld and 1 or 0)
+        if (tr.Hit) then
+            local pos = tr.HitPos + tr.Normal * mins
+            local dtr = trace.trace(pos, pos + Vector(0, 0, -100), ply, 81931, 1)
+            if (dtr.Hit) then
+                pos = dtr["HitPos"] + aim * -10 + Vector(0, 0, 5)
+            end
+
+            ply:setPos( pos )
+
+        end
+    end
+end)
+
+local tpDist = 40
+local tpPoses = {
+    Vector(tpDist, 0, 0),
+    Vector(-tpDist, 0, 0),
+    Vector(0, tpDist, 0),
+    Vector(0, -tpDist, 0)
+}
+
+hook.add("PlayerSay", compiledName, function( ply, text, isTeam )
+    if (ply:entIndex() == owner:entIndex()) then
+        local args = string.split(text, " ")
+        if (args[1] == "/tp") then
+            if ply:isAlive() then
+                if (type(args[2]) == "string") then
+                    local plys = find.playersByName(args[2])
+                    if plys then
+                        local target = find.closest(plys, owner:getPos())
+                        if isValid(target) then
+                            local nick = target:getName()
+                            if target:isAlive() then
+                                for i = 0, #tpPoses do
+                                    local pos = target:localToWorld( table.random(tpPoses) )
+                                    if pos:isInWorld() then
+                                        ply:setPos( pos )
+                                        PLib:Log(chipName, "OK: ", nick)
+                                        break
+                                    end
+                                end
+                            else
+                                PLib:Log(chipName, nick .. " is dead!")
+                            end
+                        end
+                    end
+                end
+            else
+                PLib:Log(chipName, "You cannot teleport while dead!")
+            end
+
+            return ""
+        end
+    end
+end)

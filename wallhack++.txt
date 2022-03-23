@@ -15,20 +15,19 @@ if CLIENT then
     CLIENT_REMOVE_FRIENDS = true
 
     -- Scaner
-    CLIENT_UPDATE_TIME = 0.05
-    CLIENT_MAX_DISTANCE = 10000
+    CLIENT_UPDATE_TIME = 0.025
 
 else
 
     -- Players
     SERVER_REMOVE_SUPERADMINS = false
     SERVER_REMOVE_ADMINS = false
-    SERVER_REMOVE_NOCLIP = true
+    SERVER_REMOVE_NOCLIP = false
     SERVER_REMOVE_DEAD = true
-    SERVER_REMOVE_GOD = true
+    SERVER_REMOVE_GOD = false
 
     -- Scaner
-    SERVER_UPDATE_TIME = 0.5
+    SERVER_UPDATE_TIME = 1
 
 end
 
@@ -50,16 +49,8 @@ local ipairs = ipairs
 local compiledName
 do
     local chip = chip()
-    if isValid( chip ) then
-        chip:setMaterial( "Models/effects/vol_light001" )
-
-        if (SERVER) then
-            chip:setNocollideAll( true )
-        end
-
-        if isValid( owner ) then
-            compiledName = crc( chip:getChipName() .. " by " .. chip:getChipAuthor() .. ", Owner: " .. owner:getName() )
-        end
+    if isValid( chip ) and isValid( owner ) then
+        compiledName = crc( chip:getChipName() .. " by " .. chip:getChipAuthor() .. ", Owner: " .. owner:getName() )
     end
 end
 
@@ -68,7 +59,7 @@ if (compiledName == nil) then
     return
 end
 
-if (CLIENT) then
+if CLIENT then
     local dots = {}
 
     do
@@ -88,10 +79,7 @@ if (CLIENT) then
 
             local isValid = isValid
             local team_getColor = team.getColor
-
-            local CLIENT_DEATH_COLOR = CLIENT_DEATH_COLOR
-            local CLIENT_MAX_DISTANCE = CLIENT_MAX_DISTANCE * CLIENT_MAX_DISTANCE
-            local CLIENT_REMOVE_FRIENDS = CLIENT_REMOVE_FRIENDS
+            local deathColor = CLIENT_DEATH_COLOR
 
             local players = {}
             function buildDots( tbl )
@@ -103,21 +91,24 @@ if (CLIENT) then
 
                 for num, ply in ipairs( players ) do
                     if isValid( ply ) then
-                        if CLIENT_REMOVE_FRIENDS and (ply:getFriendStatus() == "friend") then
-                            continue
-                        end
+                        local x, y, visible = 0, 0, false
 
-                        if (CLIENT_MAX_DISTANCE > 0) and (ply:getPos():getDistanceSqr( owner:getPos() ) > CLIENT_MAX_DISTANCE) then
-                            continue
+                        local pos = ply:getPos()
+                        local screenData = pos:toScreen()
+                        if (screenData) then
+                            x, y, visible = screenData["x"], screenData["y"], screenData["visible"]
                         end
 
                         table.insert( dots, {
                             ply:getName(),
-                            LerpColor( 1 - ( ply:getHealth() / ply:getMaxHealth() ), team_getColor( ply:getTeam() ), CLIENT_DEATH_COLOR ),
-                            ply:getPos(),
+                            LerpColor( 1 - ( ply:getHealth() / ply:getMaxHealth() ), team_getColor( ply:getTeam() ), deathColor ),
+                            pos,
                             ply:getAngles(),
                             ply:obbMins(),
-                            ply:obbMaxs()
+                            ply:obbMaxs(),
+                            x,
+                            y,
+                            visible
                         })
                     end
                 end
@@ -161,10 +152,9 @@ if (CLIENT) then
             local render_drawSimpleText = render.drawSimpleText
             hook.add("drawhud", compiledName, function()
                 for num, info in ipairs( dots ) do
-                    local data = info[3]:toScreen()
-                    if (data["visible"] == true) then
+                    if (info[9]) then
                         render_setColor( info[2] )
-                        render_drawSimpleText( data["x"], data["y"], info[1], 1, 2 )
+                        render_drawSimpleText( info[7], info[8], info[1], 1, 2 )
                     end
                 end
             end)
@@ -174,18 +164,8 @@ if (CLIENT) then
 
 else
 
-    local SERVER_REMOVE_GOD = SERVER_REMOVE_GOD
-    local SERVER_REMOVE_DEAD = SERVER_REMOVE_DEAD
-    local SERVER_REMOVE_ADMINS = SERVER_REMOVE_ADMINS
-    local SERVER_REMOVE_NOCLIP = SERVER_REMOVE_NOCLIP
-    local SERVER_REMOVE_SUPERADMINS = SERVER_REMOVE_SUPERADMINS
-
-    local isValid = isValid
-    local net_send = net.send
-    local net_start = net.start
-    local table_insert = table.insert
-    local net_writeTable = net.writeTable
     local find_allPlayers = find.allPlayers
+    local isValid = isValid
 
     timer.create(compiledName, SERVER_UPDATE_TIME, 0, function()
         local players = {}
@@ -214,13 +194,13 @@ else
                 continue
             end
 
-            table_insert( players, ply )
+            table.insert( players, ply )
         end
 
         if isValid( owner ) then
-            net_start( compiledName )
-                net_writeTable( players )
-            net_send( owner )
+            net.start( compiledName )
+                net.writeTable( players )
+            net.send( owner )
         end
     end)
 

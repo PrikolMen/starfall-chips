@@ -1,0 +1,132 @@
+--@name ~ TTS ~
+--@author PrikolMen#3372
+--@shared
+
+--[[-----------------
+    Configuration
+-----------------]]--
+
+// Audio volume in %
+VOLUME = 100
+
+// TTS hear distantion in hammer units
+HEAR_DIST = 512
+
+// Dead Palyers can't talk?
+DEAD_CANT_TALK = true
+
+// Dead Palyers can't hear?
+DEAD_CANT_HEAR = true
+
+// Hide messages in chat
+HIDE_CHAT_MESSAGES = true
+
+--[[-----------------
+         Code
+-----------------]]--
+
+local owner = owner()
+if not isValid( owner ) then
+    return
+end
+
+local compiledName
+do
+    local chip = chip()
+    if isValid( chip ) then
+        // pcall(chip.setNoDraw, chip, true)
+
+        if (SERVER) then
+            chip:setNocollideAll( true )
+        end
+
+        if isValid( owner ) then
+            compiledName = crc( chip:getChipName() .. " by " .. chip:getChipAuthor() .. ", Owner: " .. owner:getName() )
+        end
+    end
+end
+
+if (CLIENT) then
+
+    local player = player()
+
+    local phrases = {}
+    hook.add("think", compiledName, function()
+        if isValid( owner ) then
+            for num, channel in ipairs( phrases ) do
+                if isValid( channel ) then
+                    if ( !DEAD_CANT_TALK or owner:isAlive() ) then
+                        if ( !DEAD_CANT_HEAR or player:isAlive() ) then
+                            channel:setVolume( VOLUME / 100 )
+                            channel:setPos( owner:getEyePos() )
+                        else
+                            channel:setVolume( 0 )
+                        end
+                    else
+                        table.remove( phrases, num )
+                        channel:stop()
+                    end
+                else
+                    table.remove( phrases, num )
+                end
+            end
+        else
+            hook.remove( "think", compiledName )
+        end
+    end)
+
+    local function httpUrlEncode( text )
+            local ndata = string.gsub(text, "[^%w _~%.%-]", function( str )
+            local nstr = string.format("%X", string.byte(str))
+                  return "%" .. ( (string.len(nstr) == 1) and "0" or "") .. nstr
+            end)
+         return string.gsub(ndata, " ", "+")
+    end
+
+    net.receive( compiledName, function()
+        local ply = net.readEntity()
+        local text = net.readString()
+        
+        if isValid( ply ) then
+            bass.loadURL( "http://translate.google.com/translate_tts?tl=" .. convar.getString("gmod_language") .. "&ie=UTF-8&q=" .. httpUrlEncode( text ) .. "&client=tw-ob", "3d", function( channel, err, name )
+                if isValid( channel ) then
+                    
+                    table.insert( phrases, channel )
+                    
+                             channel:setPos( ply:getEyePos() )
+                    channel:setVolume( VOLUME / 100 )
+                    channel:setFade( 200, HEAR_DIST * 2 )
+                    channel:play()
+
+                end
+            end)
+        end
+
+    end)
+    
+end
+
+if (SERVER) then
+
+    hook.add( "PlayerSay", compiledName, function( ply, text, tm )
+        if (tm) or (ply:entIndex() != owner:entIndex()) then return end
+
+        local whoHear = {}
+        for num, pl in ipairs( find.inSphere( ply:getEyePos(), HEAR_DIST ) ) do
+            if pl:isPlayer() and ( !DEAD_CANT_HEAR or ply:isAlive()) then
+                table.insert( whoHear, pl )
+            end
+        end
+
+        net.start( compiledName )
+            net.writeEntity( ply )
+            net.writeString( text )
+        net.send( whoHear )
+        
+        if HIDE_CHAT_MESSAGES then
+            return ""
+        end
+
+    end)
+
+end
