@@ -2,15 +2,17 @@
 --@author PrikolMen#3372
 --@server
 
-local heal = "entity_melon"
-local armor = "hl1_item_battery"
+local heal = "item_healthkit"
+local armor = "item_battery"
 
 local function Create(ply, class)
     local ok, ent = pcall(prop.createSent, ply:getPos(), ply:getAngles(), class)
     if ok then
         if isValid(ent) then
             ent:setNoDraw(true)
+--[[
             ent:use()
+]]
 
             timer.simple(0, function()
                 if isValid(ent) then
