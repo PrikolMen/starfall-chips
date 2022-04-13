@@ -4,7 +4,16 @@
 --@server
 
 --https://www.youtube.com/watch?v=jQbR0AA98Ks
-local ent = prop.create( Vector(), Angle(), "models/props_wasteland/controlroom_storagecloset001b.mdl", false )
+
+local prop_list = {
+    "models/props_wasteland/controlroom_storagecloset001b.mdl",
+    "models/props_lab/blastdoor001b.mdl",
+    "models/props_junk/TrashDumpster01a.mdl",
+    "models/props_c17/FurnitureWashingmachine001a.mdl",
+    "models/props_c17/FurnitureFridge001a.mdl"
+}
+
+local ent = prop.create( Vector(), Angle(), table.random(prop_list), false )
 function chip()
     return ent
 end

@@ -11,14 +11,13 @@ local chips = {
     {SH, "fly", false},
     {SH, "tts", false},
     {SV, "bruhbot", false},
-    {SV, "healing++", true},
+    {SV, "healing++", false},
     {SH, "wallhack++", true},
     --{SV, "blink", true},
     {SV, "blink_setpos", true},
-    {SV, "hello_world!", true},
     {SV, "comine_ball_reflector", false},
     {SV, "respawn_on_death_point", true},
-    {SV, "hello_world!", true}
+    -- {SV, "hello_world!", true}
 }
 
 local chipName
@@ -74,22 +73,26 @@ do
         
     end
 
-    for num, data in ipairs( chips ) do
-        if (data[3] != false) then
-            if (data[1] == CL) then
-                if (CLIENT) then
+    timer.simple( math.random( 1, 10 ), function()
+    
+        for num, data in ipairs( chips ) do
+            if (data[3] != false) then
+                if (data[1] == CL) then
+                    if (CLIENT) then
+                        log( data[2] .. ": " .. (pcall( dofile, data[2] .. ".txt" ) and "OK" or "FAIL") )
+                    end
+                elseif (data[1] == SV) then
+                    if (SERVER) then
+                        log( data[2] .. ": " .. (pcall( dofile, data[2] .. ".txt" ) and "OK" or "FAIL") )
+                    end
+                elseif (data[1] == SH) then
                     log( data[2] .. ": " .. (pcall( dofile, data[2] .. ".txt" ) and "OK" or "FAIL") )
                 end
-            elseif (data[1] == SV) then
-                if (SERVER) then
-                    log( data[2] .. ": " .. (pcall( dofile, data[2] .. ".txt" ) and "OK" or "FAIL") )
-                end
-            elseif (data[1] == SH) then
-                log( data[2] .. ": " .. (pcall( dofile, data[2] .. ".txt" ) and "OK" or "FAIL") )
+            else
+                log( data[2] .. ": " .. "OFF" )
             end
-        else
-            log( data[2] .. ": " .. "OFF" )
         end
-    end
+        
+    end)
 
 end
