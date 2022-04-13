@@ -1,0 +1,34 @@
+--@name Comine Ball Reflector
+--@author PrikolMen#3372
+--@server
+
+local ply = owner()
+
+local list = {
+    ["crossbow_bolt"] = true,
+    ["prop_combine_ball"] = true,
+    ["rpg_missile"] = true,
+    ["arccw_rpg7_he"] = true,
+    ["npc_grenade_frag"] = true
+}
+
+local delay = 0
+hook.add("Tick", "", function()
+    local time = timer.curtime()
+    if delay > time then return end
+    delay = time + 2
+
+    for _, ent in ipairs(find.inSphere(ply:getEyePos(), 600)) do
+        if (ent:getOwner() == owner) or ent:isWeapon() then continue end
+        if (list[ent:getClass()] == true) then
+            local ang = ent:getAngles() - ply:getAngles()
+            local prop = prop.create(ent:localToWorld(ang:getForward() * math.abs(ent:obbMaxs()[3] - ent:obbMins()[3])), Angle(0, ang[2] - 90, 90), "models/props_building_details/Storefront_Template001a_Bars.mdl", true)
+    
+            timer.simple(1, function()
+                if isValid(prop) then
+                    prop:remove()
+                end
+            end)
+        end
+    end
+end)

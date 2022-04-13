@@ -1,0 +1,93 @@
+--@name Styled2Info
+--@author Klen_list uwu ~
+--@shared
+
+if SERVER then
+
+    net.receive("gethp", function(l, p)
+        if p ~= owner() then return end
+    
+        local e = net.readEntity()
+        if not isValid(e) then return end
+    
+        net.start"gethp"
+            net.writeEntity(e)
+            net.writeUInt(e:getSaveTable(false).m_iJuice, 7)
+        net.send(p)
+    end)
+
+else
+    
+    net.receive("gethp", function()
+        local e = net.readEntity()
+        if not isValid(e) then return end
+        e.gethp = net.readUInt(7)
+        e.req = false
+    end)
+    
+    local function getEntCoordes(e, sw, sh)
+        local min, max = e:obbMins(), e:obbMaxs()
+
+        local corners = {
+            Vector(min.x, min.y, min.z),
+            Vector(min.x, min.y, max.z),
+            Vector(min.x, max.y, min.z),
+            Vector(min.x, max.y, max.z),
+            Vector(max.x, min.y, min.z),
+            Vector(max.x, min.y, max.z),
+            Vector(max.x, max.y, min.z),
+            Vector(max.x, max.y, max.z)
+        }
+     
+        local minX, minY, maxX, maxY = sw * 2, sh * 2, 0, 0
+        for _, corner in ipairs(corners) do
+            local onScreen = e:localToWorld(corner):toScreen()
+            minX, minY = math.min(minX, onScreen.x), math.min(minY, onScreen.y)
+            maxX, maxY = math.max(maxX, onScreen.x), math.max(maxY, onScreen.y)
+        end
+     
+        return minX, minY, maxX, maxY
+    end
+
+    
+    hook.add("drawhud", "styledwh", function()
+        local ents = find.byClass"item_*charger"
+        if not ents[1] then return end
+        local sw, sh = render.getResolution()
+            for i, e in ipairs(ents) do
+                if e:getPos():getDistanceSqr(player():getPos()) < 100000 then
+                    local x1, y1, x2, y2 = getEntCoordes(e, sw, sh)
+                    render.setColor(Color(255, 255, 255))
+                    render.drawLine(x1, y1, math.min(x1 + 15, x2), y1)
+                    render.drawLine(x1, y1, x1, math.min(y1 + 15, y2))
+                    render.drawLine(x2, y1, math.max(x2 - 15, x1), y1)
+                    render.drawLine(x2, y1, x2, math.min( y1 + 15, y2))
+                    render.drawLine(x1, y2, math.min(x1 + 15, x2), y2)
+                    render.drawLine(x1, y2, x1, math.max(y2 - 15, y1))
+                    render.drawLine(x2, y2, math.max(x2 - 15, x1), y2)
+                    render.drawLine(x2, y2, x2, math.max(y2 - 15, y1))
+                    render.drawText(x2 + 10, y1, '#' .. e:getClass())
+                    render.drawText(x2 + 10, y1 + 15, tostring(e.gethp or "NaN") .. '%')
+                    if not e.req then
+                        e.req = true
+                        net.start"gethp"
+                            net.writeEntity(e)
+                        net.send()
+                    end
+                end
+            end
+    end)
+    
+    if owner() == player() then enableHud(nil, true) end
+    
+end
+
+--[[   ___
+      //!!\   @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+     // || \  Klen_list@GLua:/fuck/yourself#
+    // /--\ \ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    || )==( | 
+    \\ \__/ / Arch Klenux (Starfall Container)
+     \\ !! /    ~ x64-86
+      \\||/       [X] 200X - KLA LLC (c)
+]]

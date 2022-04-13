@@ -1,0 +1,185 @@
+--@name 3DItemsInfo
+--@author Klen_list uwu ~
+--@client
+
+local drawinfo = {
+    item_battery = { desc = " +15 Armor", bindcheck = true, bind = "+use", bindname = "Use:" },
+    item_healthkit = { desc = " +25 Health", bindcheck = true, bind = "+use", bindname = "Use:" },
+    item_healthvial = { desc = " +10 Health", bindcheck = true, bind = "+use", bindname = "Use:" },
+    item_healthcharger = { bindcheck = true, bind = "+use", bindname = "Use(Press):" },
+    item_suitcharger = { bindcheck = true, bind = "+use", bindname = "Use(Press):" },
+    item_ammo_ = { bindcheck = true, bind = "+use", bindname = "Use:" }
+}
+
+local col_black_a130 = Color(0, 0, 0, 130)
+local col_black_a250 = Color(0, 0, 0, 250)
+local col_white = Color(255, 255, 255)
+
+local box_h, bind_box_h, line_w = 0, 0, 0
+local desc_len, bind_len = 0, 0, 0, 0
+local function setZero()
+    box_h, bind_box_h, line_w = 0, 0, 0
+    desc_len, bind_len = 0, 0, 0, 0
+end
+
+local function calcTextSizes(info)
+    local title_w, title_h, desc_w, desc_h, bindname_w, bindname_h, bind_w = 0, 0, 0, 0, 0, 0, 0
+    render.setFont"HudHintTextLarge"
+    if info.title then
+        title_w, title_h = render.getTextSize(info.title)
+    end
+    render.setFont"HudHintTextSmall"
+    if info.desc then 
+        desc_w, desc_h = render.getTextSize(info.desc)
+    end
+    if info.bindcheck then
+        bindname_w, bindname_h = render.getTextSize(info.bindname)
+        bindname_h = bindname_h + 4
+        local _, name = input.lookupBinding(info.bind)
+        bind_w = render.getTextSize(name)
+    end
+    return title_w, title_h, desc_w, desc_h, bindname_w, bindname_h, bind_w
+end
+
+local function calc3D2D(startpoint, zOffset, size)
+    startpoint:add(Vector(0, 0, zOffset))
+    local ang = (eyePos() - startpoint):getNormalized():getAngle()
+    ang = ang:rotateAroundAxis(ang:getForward(), 90)
+    ang = ang:rotateAroundAxis(ang:getRight(), 270)
+    return startpoint, ang, size
+end
+
+local function draw3DBox(box_max_w, box_max_h)
+    box_h = math.clamp(box_h + 1, 0, box_max_h)
+    render.drawRect(0, 0, box_max_w, box_h)
+end
+
+local function draw3DBoxTitle(title_show_h, title)
+    if box_h >= title_show_h then
+        render.setFont"HudHintTextLarge"
+        render.drawText(2, 0, title)
+    end
+end
+
+local function draw3DBoxTitleLine(title_h, title_show_h, box_max_w)
+    if box_h >= title_show_h + 2 then
+        line_w = math.lerp(.05, line_w, box_max_w - 2)
+        render.drawLine(2, title_h + 2, line_w, title_h + 2)
+    end    
+end
+
+local function draw3DBoxDesc(desc, desc_show_h, title_show_h)
+    if desc and box_h >= desc_show_h then 
+        desc_len = math.clamp(desc_len + 1, 1, #desc)
+        render.setFont"HudHintTextSmall"
+        render.drawText(2, title_show_h, string.sub(desc, 1, desc_len))
+    end
+end
+
+local function draw3DBoxBind(check, bindname, bind, bind_show_h, desc_show_h, bindname_w, bindname_h)
+    if check and box_h >= bind_show_h then
+        bind_len = math.clamp(bind_len + 1, 1, #bindname)
+        render.setFont"HudHintTextSmall"
+        render.drawText(2, desc_show_h, string.sub(bindname, 1, bind_len))
+        if bind_len >= #bindname then
+            bind_box_h = math.clamp(bind_box_h + .7, 1, 10)
+            render.setColor(col_black_a250)
+            render.drawRoundedBoxEx(2, bindname_w + 5, desc_show_h + 1, 10, bind_box_h, true, true, true, true)
+            if bind_box_h >= 10 then
+                local _, name = input.lookupBinding(bind)
+                render.setColor(col_white)
+                render.drawText(bindname_w + 7, desc_show_h + 1, string.upper(name))
+            end
+        end
+    end
+end
+
+local function getTraceEntityInfo()
+    local tr = player():getEyeTrace()
+    local ent = tr.Entity
+    local infosuc, valid, info = true, true
+    local class = ent:getClass()
+    if isValid(ent) then
+        info = drawinfo[class]
+        if not info then
+            local prefix = class:match"([%w]+_[%w]+_)"
+            info = drawinfo[prefix]
+        end
+    else
+        valid = false
+    end
+    if info == nil then
+        infosuc = false
+    end
+    return infosuc, valid, tr.HitPos, ent, info
+end
+
+local print_time = 0
+local function timedprint(...)
+    if timer.curtime() < print_time then return end
+    print_time = timer.curtime() + 1
+    print(...)
+end
+
+local function ItemDrawTargetID()
+    local infosuc, valid, hitpos, ent, info = getTraceEntityInfo()
+    if not valid then return setZero() end
+    if infosuc then
+
+        for num, flex in ipairs( ent:getFlexes() ) do
+            timedprint( ent:getFlexWeight( flex ) )
+        end
+
+        timedprint( ent:getFlexScale() )
+
+        info.title = '#' .. ent:getClass()
+        local title_w, title_h, desc_w, desc_h, bindname_w, bindname_h, bind_w = calcTextSizes(info)
+        local title_show_h = title_h + 3
+        local desc_show_h = title_show_h + desc_h
+        local bind_show_h = desc_show_h + bindname_h
+        local box_max_w = math.max(title_w, desc_w, bindname_w + 15) + 5
+        local pos, ang, size = calc3D2D(hitpos, 15, .20)
+        local sw, sh = render.getResolution()
+        render.pushViewMatrix({ type = "3D", x = 0, y = 0, w = sw, h = sh, origin = eyePos(), angles = eyeAngles(), aspect = sw / sh })
+            render.draw3DLine(ent:localToWorld(ent:obbCenter()), pos)
+            local m = Matrix()
+            m:setTranslation(pos)
+            m:setAngles(ang)
+            m:setScale(Vector(size, -size))
+            render.pushMatrix(m)
+                render.setFilterMin(TEXFILTER.POINT)
+                    render.setColor(col_black_a130)
+                    draw3DBox(box_max_w, bind_show_h)
+                    render.setColor(col_white)
+                    draw3DBoxTitle(title_show_h, info.title)
+                    draw3DBoxTitleLine(title_h, title_show_h, box_max_w)
+                    draw3DBoxDesc(info.desc, desc_show_h, title_show_h)
+                    draw3DBoxBind(info.bindcheck, info.bindname, info.bind, bind_show_h, desc_show_h, bindname_w, bindname_h)
+                render.setFilterMin(TEXFILTER.NONE)
+            render.popMatrix()
+        render.popViewMatrix()
+       else
+        setZero()
+    end
+end
+hook.add("drawhud", "ItemDrawTargetID", ItemDrawTargetID)
+
+if player() == owner() then enableHud(nil, true) end
+
+hook.add("starfallUsed", "UseEnableHUD", function(p, e)
+    if p ~= player() then return end
+    if e ~= chip() then return end
+    local ha = render.isHUDActive()
+    enableHud(p, not ha)
+    print(("%s - %s %s hud."):format(p:getName(), ha and "disconnected from" or "connected to", chip():getChipName()))
+end)
+
+--[[   ___
+      //!!\   @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+     // || \  Klen_list@GLua:/fuck/yourself#
+    // /--\ \ @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    || )==( | 
+    \\ \__/ / Arch Klenux (Starfall Container)
+     \\ !! /    ~ x64-86
+      \\||/       [X] 200X - KLA LLC (c)
+]]

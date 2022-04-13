@@ -1,0 +1,22 @@
+--@name Barrels
+--@author PrikolMen#3373
+--@server
+
+local chip = chip()
+for i = 0, 100 do
+    timer.simple(0.25 * i * math.rand( 0, 2 ), function()
+        pcall( prop.create, chip:getPos(), chip:getAngles(), "models/props_c17/oildrum001_explosive.mdl" )
+    end)
+end
+
+--[[
+timer.simple(0, function()
+    if isValid( ent ) then
+        local phys = ent:getPhysicsObject()
+        if isValid( phys ) then
+            phys:addGameFlags( FVPHYSICS.DMG_DISSOLVE )
+            phys:setVelocity( Vector( 0, 0, -100000 ) )
+        end
+    end
+end)
+]]

@@ -1,0 +1,71 @@
+--@name Healing++
+--@author PrikolMen#3372
+--@server
+
+//              Config              //
+
+local healClass = "entity_melon"
+local armorClass = "item_battery"
+
+local removeDelay = 1
+
+//                                  //
+
+local owner, chip = owner(), chip()
+local chipPos = chip:localToWorld( Vector( 0, 0, 25 ) )
+
+local timer_simple = timer.simple
+local isValid = isValid
+local pcall = pcall
+
+local function create( ply, class )
+    local ok, ent = pcall( prop.createSent, chipPos, ply:getAngles(), class )
+    if ok then
+        if isValid( ent ) then
+            pcall( ent.setNoDraw, ent, true )
+            timer_simple(removeDelay, function()
+                if isValid( ent ) then
+                    ent:remove()
+                end
+            end)
+            
+            return ent
+        end
+    end
+
+    return false
+end
+
+hook.add("EntityTakeDamage", "", function(ply)
+    if (ply == owner) then
+
+        timer_simple(0, function()
+            if isValid( ply ) then
+                
+                hook.add("think", "Health++:Health", function()
+                    if isValid( ply ) and (ply:getHealth() < ply:getMaxHealth()) then
+                        local healEnt = create( ply, healClass )
+                        if (healEnt != false) then
+                            healEnt:use()
+                        end
+                    else
+                        hook.remove("think", "Health++:Health")
+                    end
+                end)
+
+                hook.add("think", "Health++:Armor", function()
+                    if isValid( ply ) and (ply:getArmor() < ply:getMaxArmor()) then
+                        local armorEnt = create( ply, armorClass )
+                        if (armorEnt != false) then
+                            armorEnt:setPos( ply:getPos() )
+                        end
+                    else
+                        hook.remove("think", "Health++:Armor")
+                    end
+                end)
+                        
+            end
+        end)
+
+    end
+end)

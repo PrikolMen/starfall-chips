@@ -1,0 +1,60 @@
+--@name Magical Props
+--@author PrikolMen#3372
+--@server
+
+chip():setNoDraw(true)
+
+local model_list = {
+    "models/props_interiors/pot01a.mdl",
+    "models/props_interiors/pot02a.mdl"
+    
+}
+
+local useTimeouts = {}
+local button = 8192 -- Space 2, R - 8192
+
+local owner = owner()
+
+local onlyOwner = true
+local disableForOwner = false
+
+local invisibleProps = false
+
+hook.add("KeyPress", "MagicBottles", function(ply, key)
+    if disableForOwner and (ply == owner) then
+        return
+    end
+
+    if onlyOwner and (ply != owner) then
+        return
+    end
+
+    if (button != nil) and (button != key) then
+        return
+    end
+
+    if ply:isAlive() and not ply:inVehicle() then
+        local time = timer.curtime()
+        if ((useTimeouts[ply] or 0) < time) then
+            local ent = prop.create(ply:getEyePos() + ply:getEyeAngles():getForward() * 50, ply:getEyeAngles(), table.random(model_list))
+            ent:setNoDraw(invisibleProps)
+
+            local phys = ent:getPhysicsObject()
+            if isValid(phys) then
+                phys:wake()
+                phys:enableMotion(true)
+        
+                phys:addGameFlags( 512 )
+                phys:applyForceCenter(ply:getEyeAngles():getForward() * phys:getMass() * 100000)
+            end
+
+            ent:addCollisionListener(function(data, self)
+                if isValid(ent) then
+                    ent:remove()
+                end
+            end)
+
+            useTimeouts[ply] = time + prop.spawnRate() / 10
+        end
+    end
+end)

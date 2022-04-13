@@ -1,0 +1,79 @@
+--@name PLib - Starfall
+--@author PrikolMen#3372
+--@shared
+
+PLib = PLib or {}
+
+local chip = chip()
+PLib["chip"] = chip
+
+local owner = owner()
+PLib["owner"] = owner
+
+PLib["_C"] = {
+    ["cl"] = Color(255, 193, 7),
+    ["sv"] = Color(40, 192, 252),
+    ["text"] = Color(250, 238, 255),
+    ["warn"] = Color(202, 50, 50),
+    ["dy"] = Color(238, 225, 113),
+    ["dg"] = Color(83, 138, 32),
+    ["g"] = Color(93,174,117),
+    ["print"] = Color(160, 236, 255),
+    ["logo"] = Color(220, 220, 225, 250),
+    ["gmod_white"] = Color(230, 230, 230),
+    ["achievement"] = Color(255, 200, 0),
+    ["module"] = Color(179, 138, 255),
+    ["grey"] = Color(50, 50, 50),
+    ["dgrey"] = Color(25, 25, 25)
+}
+
+function PLib:SideColor()
+    return CLIENT and self["_C"]["cl"] or self["_C"]["sv"]
+end
+
+local table_Add = table.add
+local unpack = unpack
+
+local canSeeLogs = player() == owner
+
+function PLib:Log(tag, ...)
+    if canSeeLogs then
+        printHud(owner, self:SideColor(), "[" .. (tag or "PLib") .. "] ", self["_C"]["text"], unpack(table_Add({...}, {"\n"})))
+    end
+end
+
+function GetPlayerColor(ply)
+    return team.getColor( ply:getTeam() )
+end
+
+if SERVER then
+    local oneSeatMode = true
+
+    function PLib:CreateSeat(pos, ang, class, tbl)
+        if oneSeatMode then
+            for k, ent in ipairs(find.byClass("Seat_Airboat")) do
+                if (ent:getOwner() == owner) then
+                    ent:remove()
+                end
+            end
+        end
+
+        local ok, ent = pcall(prop.createSent, pos and pos or chip:getPos(), ang and ang or chip:getAngles(), class and class or "Seat_Airboat", false, tbl)
+        return ok and ent or nil, not ok and ent or nil
+    end
+    
+    function PLib:TeleportPlayer(pos, ang)
+        local seat = self:CreateSeat(pos, ang)
+        if isValid(seat) then
+            seat:setNoDraw(true)
+            seat:use()
+
+            timer.simple(0, function()
+                if isValid(seat) then
+                    -- seat:ejectDriver()
+                    seat:remove()
+                end
+            end)
+        end
+    end
+end

@@ -1,0 +1,423 @@
+--@name Speaker
+--@author Angle
+--@shared
+--@model models/bull/various/speaker.mdl
+
+if (CLIENT) then
+    
+    local SA = {}
+    SA["__index"] = SA
+    
+    function SoundAnalyze()
+        return setmetatable({
+            __fft = {},
+            __fftsize = 6,
+            __FFTHistoryDelay = 0,
+            __FFTHistoryMaxSize = 30,
+            __basssize = 500,
+            __bass = 0,
+            __FFTHistory = {{},{},{},{},{}},
+            __spectrum = {0,0,0,0,0},
+            __averageSpectrum = {0,0,0,0,0},
+        }, SA )
+    end
+    
+    local assert = assert
+    local type = type
+    
+    do
+        local tostring = tostring
+        function SA:__tostring()
+            return "SoundAnalyze channel: " .. tostring( self["__channel"] )
+        end
+    end
+    
+    function SA:SetChannel( channel )
+        -- assert( type( channel ) == "IGModAudioChannel", "bad argument #1 (IGModAudioChannel expected)")
+        self["__channel"] = channel
+    end
+    
+    function SA:GetChannel()
+        return self["__channel"]
+    end
+    
+    local function average(t)
+        local sum = 0
+        for k, v in ipairs(t) do
+            sum = sum + v
+        end
+    
+        return sum / #t
+    end
+    
+    do
+        local CurTime = timer.curtime()
+        local table_insert = table.insert
+        local table_remove = table.remove
+        function SA:GetFFT()
+            if isValid(self["__channel"]) then
+                self["__fft"] = self["__channel"]:getFFT(self["__fftsize"])
+                return self["__fft"]
+            else
+                -- assert("IGModAudioChannel not valid")
+            end
+        end
+    
+        function SA:SetFFTSize( size )
+            -- assert( type( size ) == "number", "bad argument #1 (number expected)")
+            self["__fftsize"] = size
+        end
+    
+        function SA:GetFFTSize()
+            return self["__fftsize"]
+        end
+    
+        function SA:FFTThink()
+            self["__fft"] = self["__channel"]:getFFT(self["__fftsize"])
+        end
+    
+        function SA:FFTHistorySetDelay( time )
+            -- assert( type( time ) == "number", "bad argument #1 (number expected)")
+            self["__FFTHistoryDelay"] = time
+        end
+    
+        function SA:FFTHistorySetMaxSize( size )
+            -- assert( type( size ) == "number", "bad argument #1 (number expected)")
+            self["__FFTHistoryMaxSize"] = size
+        end
+    
+        function SA:FFTHistoryThink()
+            self:FFTThink()
+            local per1,per2,per3,per4,per5 = 0,0,0,0,0
+            local avgtbl1 = {}
+            local avgtbl2 = {}
+            local avgtbl3 = {}
+            local avgtbl4 = {}
+            for i=1,2528 do
+                if i >= 1 and i <= 32 then
+                    table_insert( avgtbl1, self["__fft"][i] )
+                end
+                if i >= 32 and i <= 56 then
+                    table_insert( avgtbl2, self["__fft"][i] )
+                end
+                if i >= 56 and i <= 328 then
+                    table_insert( avgtbl3, self["__fft"][i] )
+                end
+            --    if i >= 528 and i <= 1528 then
+              --      table_insert( avgtbl4, self["__fft"][i] )
+                --end
+            end
+                per1 = average(avgtbl1)
+                per2 = average(avgtbl2)
+                per3 = average(avgtbl3)
+                --per4 = average(avgtbl4)
+               -- per5 = average(self["__fft"])
+                avgtbl1 = {}
+                avgtbl2 = {}
+                avgtbl3 = {}
+               -- avgtbl4 = {}
+                table_insert( self["__FFTHistory"][1], per1 )
+                table_insert( self["__FFTHistory"][2], per2 )
+                table_insert( self["__FFTHistory"][3], per3 )
+               -- table_insert( self["__FFTHistory"][4], per4 )
+               -- table_insert( self["__FFTHistory"][5], per5 )
+            if #self["__FFTHistory"][1] > self["__FFTHistoryMaxSize"] then
+                table_remove( self["__FFTHistory"][1], 1 )
+                table_remove( self["__FFTHistory"][2], 1 )
+                table_remove( self["__FFTHistory"][3], 1 )
+             --  table_remove( self["__FFTHistory"][4], 1 )
+              -- table_remove( self["__FFTHistory"][5], 1 )
+            end
+        end
+    
+    end
+
+    
+    do
+    
+        function SA:GetBass( size )
+            -- assert( type( size ) == "number" or size == nil, "bad argument #1 (number expected)")
+            if isValid(self["__channel"]) then
+                self["__bass"] = 0
+                for i = 1, self["__basssize"] do
+                    if self["__fft"][i] then
+                        self["__bass"] = math.max(self["__bass"], self["__fft"][i] or 0.0001)  or 0
+                    end
+                end
+    
+                return self["__bass"]
+            else
+                -- assert("IGModAudioChannel not valid")
+            end
+        end
+    
+        function SA:BassThink( size )
+            self:FFTThink()
+    
+            for i = 1, self["__basssize"] do
+                if self["__fft"][i] then
+                    self["__bass"] = math_max(self["__bass"], self["__fft"][i]*170 or 0.01)  or 0
+                end
+            end
+        end
+    
+        function SA:SetBassSize( size )
+            -- assert( type( size ) == "number", "bad argument #1 (number expected)")
+            self["__basssize"] = size
+        end
+    
+        function SA:GetBassSize()
+            return self["__basssize"]
+        end
+    end
+    
+    do
+    
+        function SA:GetBeat()
+    
+            if isValid(self["__channel"]) then
+    
+                self:FFTHistoryThink()
+                self["__spectrum"][1] = 0
+                self["__spectrum"][2] = 0
+                self["__spectrum"][3] = 0
+               -- self["__spectrum"][4] = 0
+                self["__spectrum"][5] = 0
+                self["__averageSpectrum"][1] = 0
+                self["__averageSpectrum"][2] = 0
+                self["__averageSpectrum"][3] = 0
+               -- self["__averageSpectrum"][4] = 0
+                --self["__averageSpectrum"][5] = 0
+                local spectbl1 = {}
+                local spectbl2 = {}
+                local spectbl3 = {}
+               -- local spectbl4 = {}
+                if #self["__FFTHistory"] > 0 then
+    
+                    for i=1,#self["__fft"] do
+    
+                        -- if i >= 1 and i <= 32 then
+                        --     self["__spectrum"][1] = math.max(self["__spectrum"][1]  , self["__fft"][i])
+                        -- end
+                        if i >= 1 and i <= 32 then
+                            table.insert( spectbl1, self["__fft"][i] )
+                        end
+                        if i >= 32 and i <= 56 then
+                            table.insert( spectbl2, self["__fft"][i] )
+                        end
+                        if i >= 56 and i <= 328 then
+                            table.insert( spectbl3, self["__fft"][i] )
+                        end
+                      --  if i >= 528 and i <= 1528 then
+                      --      table.insert( spectbl4, self["__fft"][i] )
+                      --  end
+    
+                    end
+                    self["__spectrum"][1] = average(spectbl1)/1.01
+                    self["__spectrum"][2] = average(spectbl2)/1.1
+                    self["__spectrum"][3] = average(spectbl3)/1.1
+                  --  self["__spectrum"][4] = average(spectbl4)/1.1
+                  --  self["__spectrum"][5] = average(self["__fft"])/1.1
+                        spectbl1 = {}
+                        spectbl2 = {}
+                        spectbl3 = {}
+                        spectbl4 = {}
+    
+                    for i = 1, #self["__FFTHistory"][1]-3  do
+                        self["__averageSpectrum"][1] =  average({self["__averageSpectrum"][1] , self["__FFTHistory"][1][i]})
+                    end
+                    for i = 1, #self["__FFTHistory"][2]-2  do
+                        self["__averageSpectrum"][2] =  average({self["__averageSpectrum"][2] , self["__FFTHistory"][2][i]})
+                    end
+                    for i = 1, #self["__FFTHistory"][3]-3  do
+                        self["__averageSpectrum"][3] =  average({self["__averageSpectrum"][3] , self["__FFTHistory"][3][i]})
+                    end
+                  --  for i = 1, #self["__FFTHistory"][4]-5  do
+                  --      self["__averageSpectrum"][4] =  average({self["__averageSpectrum"][4] , self["__FFTHistory"][4][i]})
+                  --  end
+                 --   for i = 1, #self["__FFTHistory"][5]-5 do
+                  --      self["__averageSpectrum"][5] =  average({self["__averageSpectrum"][5] , self["__FFTHistory"][5][i]})
+                 --   end
+    
+                    self["__isBass"] = self["__spectrum"][1]>=self["__averageSpectrum"][1]*1.1
+                    self["__isLow"] = self["__spectrum"][2]>=self["__averageSpectrum"][2]*1.1
+                    self["__isMiddle"] = self["__spectrum"][3]>=self["__averageSpectrum"][3]*1.1
+                  --  self["__isHige"] = self["__spectrum"][4]>=self["__averageSpectrum"][4]*1.1
+                  --  self["__isAllBass"] = self["__spectrum"][5]>=self["__averageSpectrum"][5]*1.1
+                    return self["__isBass"] , self["__isLow"] , self["__isMiddle"]
+                end
+            else
+                error("IGModAudioChannel not valid")
+            end
+        end
+    
+        function SA:TestBeat()
+            if isValid(self["__channel"]) then
+                self:FFTHistoryThink()
+                local bass,low = 0,0
+    
+                for i=1,500 do
+    
+                    if i >= 1 and i <= 32 then
+                        for j = 1 , #self["__FFTHistory"][1] do
+                            bass = math.max(bass , (self["__FFTHistory"][1][j] + self["__fft"][i])/2)
+                        end
+                    end
+    
+                    if i >= 56 and i <= 328 then
+                        for j = 1 , #self["__FFTHistory"][2] do
+                            low = math.max(low , (self["__FFTHistory"][2][j] + self["__fft"][i])/2)
+                        end
+                    end
+    
+                end
+    
+                self["__isBass"] = bass
+                self["__isLowM"] = low
+                return self["__isBass"] , self["__isLowM"]
+            else
+                error("IGModAudioChannel not valid")
+            end
+        end
+    end
+
+end
+
+local chip = chip()
+
+local maxDist = 25
+local jumpMult = 2
+local timePerJump = 0.25
+
+if (SERVER) then
+
+    timer.simple(0, function()
+        local maxs = chip:obbMaxs()
+        chip:setPos( chip:localToWorld( Vector( 0, 0, maxs[3] ) ) )
+        
+        local phys = chip:getPhysicsObject()
+        if isValid( phys ) then
+            phys:wake()
+        end
+        
+        local noveh = false
+        net.receive("bass", function()
+            local b = net.readFloat()
+            if isValid( phys ) then
+                local center = chip:obbCenter()
+                local pos = chip:localToWorld( center )
+                local tr = trace.trace(pos, pos - Vector(0, 0, maxDist * b / 100), chip)
+        
+                if tr.Hit and noveh == false then
+                    phys:applyForceCenter( Vector(0, 0, b * jumpMult ) )
+                    phys:applyForceOffset(owner():getPos()-chip:getPos(),chip:getPos()-owner():getPos() /20)
+                end
+    
+                phys:enableMotion(true)
+                phys:wake()
+            end
+        end)
+    
+        local tpos = 0
+        local lastent = nil
+        hook.add("think", "serv", function()
+            if isValid( phys ) then
+                local center = chip:obbCenter()
+                local pos = chip:localToWorld( center )
+                local tr = trace.trace(pos, pos - Vector(0, 0, 10), chip)
+    
+                if owner():inVehicle() then
+                    lastent = owner():getVehicle()
+    
+                    if tr.Entity == owner():getVehicle() and noveh == false then
+                        noveh = true
+                        chip:setParent(tr.Entity)
+                        tpos = owner():getVehicle():worldToLocal(chip:getPos())
+                    end
+                    
+                elseif !owner():inVehicle() and noveh == true then
+                    noveh = false
+                    chip:unparent(lastent)
+                    chip:setPos(lastent:localToWorld(tpos))
+                end
+            end
+        end)
+    end)
+
+else
+
+    local basik = 0
+    function GetBass(channel)
+        local bass_ , fft = 0, channel:getFFT(6)
+
+        for i = 1, 255 do
+            if (fft[i] == nil) then continue end
+            bass_ = math.max(0, bass_, fft[i] * 170)
+        end
+        
+        return math.round(bass_)
+    end
+    
+    local ply, owner = player(), owner()
+
+    holobuf= {}
+    local light1 = light.create(chip:getPos(), 200, 4, Color(0,255,255))
+
+    for i = 1 , 20 do 
+        holobuf[i] = holograms.create(chip:localToWorld(Vector(0, 0,0)), Angle(90,-90,0), "models/bull/various/speaker.mdl")
+        holobuf[i]:setSize(Vector(10, 10, 10))
+        holobuf[i]:setColor(Color(i*(360/20),1,1):hsvToRGB())
+    end
+
+    local fftSA = SoundAnalyze()
+    local fft = {}
+    local bas,low,middle,all = 0,0,0,0
+
+    bass.loadURL("https://listen6.myradio24.com/freeradio", "3d noblock", function(snd, err, errtxt)
+        if isValid(snd) then
+            snd:setFade(500, 100000)
+            snd:setVolume(1)
+            
+            timer.simple(2,function()
+                fftSA:SetChannel(snd)
+            end)
+
+            pcall(snd.setLooping, snd, true) -- pcall in case of audio stream
+        
+            hook.add("tick", "snd", function()
+                if isValid(snd) and isValid(chip) then
+                    snd:setPos(chip:getPos())
+                    holobuf[1]:setPos(holobuf[1]:getPos()+(chip:getPos()-holobuf[1]:getPos())/2)
+                    holobuf[1]:setAngles(chip:getAngles())
+        
+                    for i = 2 , 20 do
+                        holobuf[i]:setPos(holobuf[i]:getPos()+(holobuf[i-1]:getPos()-holobuf[i]:getPos())/2)
+                        holobuf[i]:setAngles(chip:getAngles())
+                    end
+
+                    if (ply == owner) then
+                        if fftSA:GetChannel() != nil then
+                            bas,low,middle = fftSA:GetBeat()
+
+                            if bas then
+                                light1:setPos(chip:getPos())
+                                light1:draw()
+                            end
+
+                            if bas or low then
+                                net.start("bass")
+                                    net.writeFloat(fftSA:GetBass( )*360)
+                                net.send()                                    
+                            end
+
+                            basik = basik + fftSA:GetBass( )/100                           
+                        end
+                    end
+                end
+            end)
+        end
+    end)
+    
+
+
+end

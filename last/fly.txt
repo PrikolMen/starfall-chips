@@ -1,0 +1,76 @@
+--@name
+--@author
+--@shared
+
+local owner = owner()
+local ownerIndex = owner:entIndex()
+
+function math.striving_for(value, valueTo, delay)
+    return value + (valueTo - value) / delay
+end
+
+if SERVER then
+    
+    local upSpeed = 20
+    local forwardSpeed = 25
+    
+    local function keyDown( key )
+        return owner:keyDown( key )
+    end
+    
+    local fixedZ = nil
+    
+    local ply = owner
+    hook.add("Tick", "", function()
+        if owner:isOnGround() then
+            fixedZ = nil
+        else
+            local angles = owner:getAngles()
+            
+            if keyDown(131072) then
+                
+                local vel = Vector()
+                
+                if keyDown(8) then
+                    vel = vel + angles:getForward() * forwardSpeed
+                end
+
+                if keyDown(2) then
+                    fixedZ = nil
+                    vel = vel + (angles:getUp() * upSpeed * 1.25)
+                else
+                    if (fixedZ == nil) then
+                        fixedZ = ply:getPos()[3]
+                    else
+                        vel = vel - Vector(0, 0, ply:getPos()[3] - fixedZ )
+                    end
+
+                end            
+
+                if (math.floor(vel:getLength()) != 0) then
+                    ply:setVelocity( vel )
+                end
+                
+            else
+                fixedZ = nil
+                if keyDown(2) then
+                    owner:setVelocity( angles:getUp() * upSpeed )
+                end
+            
+            end
+        end 
+    end)
+
+else
+
+
+--[[
+    hook.add("KeyPress", "", function(ply, key)
+        if (ply:entIndex() == ownerIndex) then
+            print( "Key (", key, ")" )
+        end
+    end)
+]]
+
+
+end

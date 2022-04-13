@@ -1,0 +1,36 @@
+--@name Grovs
+--@author
+--@server
+
+local model = "models/props_building_details/Storefront_Template001a_Bars.mdl"
+
+
+local angle_zero = Angle()
+local function pr( ply, vec, ang, mdl )
+    local grove = prop.create( ply:localToWorld( vec ), ply:localToWorldAngles( ang or angle_zero ), mdl, true )
+    timer.simple(30, function()
+        if isValid( grove ) then
+            grove:remove()
+        end
+    end)
+end
+
+local owner = owner()
+
+local function fuck(ply)
+    if ply == owner then
+        return
+    end
+
+    if not ply:getName():match("Dick") then
+        return
+    end
+        
+    pr( ply, Vector(0, 0, 0), Angle(0, 90, 0), model )
+end
+
+hook.add("PlayerDeath", "", fuck)
+
+for k, ply in ipairs( find.allPlayers() ) do
+    fuck(ply)
+end

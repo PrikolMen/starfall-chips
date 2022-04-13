@@ -1,0 +1,61 @@
+--@name Auto-Heal
+--@author PrikolMen#3372
+--@server
+
+local heal = "item_healthkit"
+local armor = "item_battery"
+local ball = "sent_ball"
+
+local function Create(ply, class)
+    local ok, ent = pcall(prop.createSent, ply:getPos(), ply:getAngles(), class)
+    if ok then
+        if isValid(ent) then
+            ent:setNoDraw(true)
+
+            ent:use()
+
+            timer.simple(0, function()
+                if isValid(ent) then
+                    ent:remove()
+                end
+            end)
+        end
+    end
+end
+
+local chip, ply = chip(), owner()
+chip:setNoDraw(true)
+
+hook.add("Tick", "", function()
+    if ply:isAlive() and ply:getPos():isInWorld() and prop.canSpawn() then
+--[[
+        if (ply:getHealth() < ply:getMaxHealth()) then
+            Create(ply, heal)
+        end
+        
+        if (ply:getArmor() < ply:getMaxArmor()) then
+            Create(ply, armor)
+        end
+]]
+
+        if (ply:getMaxHealth() < 99999) then
+             Create(ply, ball)
+        end
+
+    end
+end)
+
+--[[
+timer.create(chip:getChipName(), 0.01, 0, function()
+    if ply:isAlive() and ply:getPos():isInWorld() then
+        if (ply:getHealth() < ply:getMaxHealth()) then
+            Create(ply, heal)
+        end
+        
+        if (ply:getArmor() < ply:getMaxArmor()) then
+            Create(ply, armor)
+        end
+        
+    end
+end)
+]]

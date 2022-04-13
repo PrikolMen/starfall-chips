@@ -1,0 +1,72 @@
+--@name BruhBot
+--@author PrikolMen#3372
+--@server
+
+local dist = 2048
+
+
+local owner = owner()
+local ownerIndex = owner:entIndex()
+
+local function getTarget()
+    local players = {}
+    local origin = owner:getEyePos()
+    for num, pl in ipairs( find.inSphere( origin, dist ) ) do
+        if pl:isPlayer() then
+            if (pl:entIndex() == ownerIndex) then continue end
+            if pl:hasGodMode() then continue end
+
+            if pl:isAlive() then
+                table.insert( players, pl )
+            end
+        end
+    end
+    
+    return find.closest( players, origin )
+end
+
+local function getHeadOrigin( ply, mode )
+
+    if ( mode == 0 ) then
+
+        local index = ply:lookupAttachment( "eyes" )
+        if (index > 0) then
+            return ply:getAttachment( index )
+        end
+
+    elseif ( mode == 1 ) then
+
+        return ply:getEyePos()
+
+    end
+
+    return getHeadOrigin( ply, 0 ) - Vector( 0, 0, 10 )
+end
+
+local function aim( target )
+    owner:setEyeAngles( ( getHeadOrigin( target ) - owner:getShootPos() ):getAngle() )
+end
+
+hook.add("KeyPress", "BruhBot", function( ply, key )
+    if (ply:entIndex() == owner:entIndex()) and (key == 262144) then
+
+        local target = getTarget()
+        hook.add("tick", "BruhBot", function()
+            if isValid( ply ) then
+                if isValid( target ) then
+                    aim( target )
+                else
+                    target = getTarget()
+                end
+            else
+                hook.remove( "tick", "BruhBot" )
+            end
+        end)
+    end
+end)
+
+hook.add("KeyRelease", "BruhBot", function( ply, key )
+    if (ply:entIndex() == owner:entIndex()) and (key == 262144) then
+        hook.remove( "tick", "BruhBot" )
+    end
+end)
