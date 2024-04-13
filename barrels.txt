@@ -2,10 +2,13 @@
 --@author PrikolMen#3373
 --@server
 
+--local model = "models/props_c17/oildrum001_explosive.mdl"
+local model = "models/props_junk/propane_tank001a.mdl"
+
 local chip = chip()
 for i = 0, 100 do
-    timer.simple(0.25 * i * math.rand( 0, 2 ), function()
-        pcall( prop.create, chip:getPos(), chip:getAngles(), "models/props_c17/oildrum001_explosive.mdl" )
+    timer.simple(0.5 * i * math.rand( 0, 10 ), function()
+        pcall( prop.create, chip:getPos(), chip:getAngles(), model )
     end)
 end
 

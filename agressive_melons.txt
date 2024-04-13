@@ -12,20 +12,23 @@ local friendList = {
 
 local chipClass = chip:getClass()
 
-function findTarget(pos) 
-    return find.closest(find.byClass(chipClass, function(ent)
-        if ignoreOwner and (ent:getOwner() == owner) then
-            return false
-        end
+local function filter( ent )
+    if ignoreOwner and ent == owner then
+        return false
+    end
+    
+    return true
+end
 
-        return true
-    end), pos)
+local function findTarget(pos) 
+    return find.closest(find.allPlayers( filter ), pos)
 end
 
 local melon = nil
 local hookName = "melons"
 local lastPos = Vector()
-function melonDestroyed()
+
+local function melonDestroyed()
     hook.remove("think", hookName)
 
     if isValid(melon) then
